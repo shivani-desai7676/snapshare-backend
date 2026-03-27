@@ -1,23 +1,13 @@
 const mongoose = require("mongoose");
 
-const AdminOtpSchema = new mongoose.Schema({
-
-  email: {
-    type: String,
-    required: true
-  },
-
-  otp: {
-    type: String,
-    required: true
-  },
-
-  created_at: {
+const adminOtpSchema = new mongoose.Schema({
+  email: String,
+  otp: String,
+  createdAt: {
     type: Date,
     default: Date.now,
-    expires: 300
-  }
-
+  },
+  expiresAt: Date,
 });
 
-module.exports = mongoose.model("AdminOtp", AdminOtpSchema);
+module.exports = mongoose.model("AdminOtp", adminOtpSchema);

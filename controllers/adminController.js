@@ -1,18 +1,9 @@
 const Admin = require("../models/Admin");
 const AdminOtp = require("../models/AdminOtp");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-// ✅ Create transporter ONCE (better performance)
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10000, // prevent long wait
-});
+// ✅ Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ================= SEND OTP =================
 exports.sendAdminOtp = async (req, res) => {
@@ -39,26 +30,27 @@ exports.sendAdminOtp = async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    // ✅ Try sending email (but don’t crash if fails)
+    // ✅ Send Email using Resend
     try {
-      await transporter.sendMail({
-        from: `"SnapShare Admin" <${process.env.EMAIL_USER}>`,
+      await resend.emails.send({
+        from: "onboarding@resend.dev",
         to: email,
         subject: "Admin Login OTP",
         text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
       });
 
-      console.log("✅ OTP Email sent");
-    } catch (mailError) {
-      console.error("❌ Email failed:", mailError.message);
+      console.log("✅ Email sent via Resend");
 
-      // 👉 fallback (important for Render issue)
+    } catch (mailError) {
+      console.error("❌ Resend error:", mailError.message);
+
+      // fallback for testing
       console.log("📌 OTP (for testing):", otp);
     }
 
     return res.json({
       success: true,
-      message: "OTP sent (check email or console)",
+      message: "OTP sent successfully",
     });
 
   } catch (error) {

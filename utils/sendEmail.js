@@ -1,35 +1,19 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const sendEmail = async (email, otp) => {
-  try {
-    // ✅ Create transporter
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true, // required for port 465
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      connectionTimeout: 10000, // ⏱️ prevent long wait (10 sec)
-    });
+try {
+  await resend.emails.send({
+    from: "onboarding@resend.dev", // default working sender
+    to: email,
+    subject: "Admin Login OTP",
+    text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+  });
 
-    // ✅ Send mail
-    const info = await transporter.sendMail({
-      from: `"SnapShare" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "SnapShare OTP Verification",
-      text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
-    });
+  console.log("✅ Email sent via Resend");
 
-    console.log("✅ Email sent:", info.response);
+} catch (err) {
+  console.error("❌ Resend error:", err.message);
 
-  } catch (error) {
-    console.error("❌ Email sending failed:", error.message);
-
-    // ❗ IMPORTANT: Do NOT throw error (prevents 500 crash)
-    return false;
-  }
-};
-
-module.exports = sendEmail;
+  // fallback
+  console.log("📌 OTP (for testing):", otp);
+}

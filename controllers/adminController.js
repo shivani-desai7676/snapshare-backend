@@ -1,22 +1,26 @@
 const Admin = require("../models/Admin");
 const AdminOtp = require("../models/AdminOtp");
-const { Resend } = require("resend");
-
-// ✅ Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+const sendEmail = require("../utils/sendEmail"); // ✅ import email function
 
 // ================= SEND OTP =================
 exports.sendAdminOtp = async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
-    return res.status(400).json({ success: false, message: "Email is required" });
+    return res.status(400).json({
+      success: false,
+      message: "Email is required",
+    });
   }
 
   try {
+    // ✅ Check admin exists
     const admin = await Admin.findOne({ email });
     if (!admin) {
-      return res.status(404).json({ success: false, message: "Admin not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
     }
 
     // ✅ Generate OTP
@@ -30,23 +34,8 @@ exports.sendAdminOtp = async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    // ✅ Send Email using Resend
-    try {
-      await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: email,
-        subject: "Admin Login OTP",
-        text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
-      });
-
-      console.log("✅ Email sent via Resend");
-
-    } catch (mailError) {
-      console.error("❌ Resend error:", mailError.message);
-
-      // fallback for testing
-      console.log("📌 OTP (for testing):", otp);
-    }
+    // ✅ Send email (handled in utils/sendEmail.js)
+    await sendEmail(email, otp);
 
     return res.json({
       success: true,
@@ -55,7 +44,10 @@ exports.sendAdminOtp = async (req, res) => {
 
   } catch (error) {
     console.error("Error in sendAdminOtp:", error.message);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -71,6 +63,7 @@ exports.verifyAdminOtp = async (req, res) => {
   }
 
   try {
+    // ✅ Find OTP record
     const record = await AdminOtp.findOne({ email, otp });
 
     if (!record) {
@@ -90,7 +83,7 @@ exports.verifyAdminOtp = async (req, res) => {
       });
     }
 
-    // ✅ Delete after success
+    // ✅ Delete OTP after success
     await AdminOtp.deleteOne({ _id: record._id });
 
     return res.json({
